@@ -1,0 +1,30 @@
+{% extends "shop/base.html" %} {% block title %} {{ product.name }} - Framazon {% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6 text-center">
+            <img src="{% if product.image %}{{ product.image.url }}{% else %}https://via.placeholder.com/400{% endif %}" 
+                 class="img-fluid rounded shadow-sm" style="max-height: 400px;">
+        </div>
+        <div class="col-md-6">
+            <h1 class="fw-bold">{{ product.name }}</h1>
+            <h5 class="text-muted">Categoría: {{ product.category.name }}</h5>
+            <hr>
+            <h2 class="text-danger fw-bold">${{ product.price }}</h2>
+            <p class="mt-4">{{ product.description|linebreaks }}</p>
+            
+            <form action="{% url 'shop:cart_add' product.id %}" method="post" class="mt-4">
+                {% csrf_token %}
+                <div class="input-group mb-3" style="max-width: 200px;">
+                    <span class="input-group-text">Cantidad</span>
+                    <input type="number" name="quantity" value="1" min="1" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-warning btn-lg rounded-pill fw-bold w-100 shadow-sm">
+                    Agregar al carrito
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
