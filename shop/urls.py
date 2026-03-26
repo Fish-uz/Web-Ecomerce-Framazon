@@ -5,6 +5,7 @@ app_name = 'shop'
 
 urlpatterns = [
     path('', views.product_list, name='product_list'),
+    path('register/', views.register, name='register'),
     
     # 1. RUTAS DEL CARRITO (Van primero porque son fijas)
     path('cart/', views.cart_detail, name='cart_detail'),
