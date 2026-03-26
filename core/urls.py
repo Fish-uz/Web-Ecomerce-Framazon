@@ -4,10 +4,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('shop.urls', namespace='shop')), # Esto es lo que falta
+    path('admin/', admin.site.urls), # <-- Asegúrate que diga admin.site.urls
+    path('accounts/', include('django.contrib.auth.urls')), 
+    path('', include('shop.urls', namespace='shop')),
+    path('cart/', include('cart.urls', namespace='cart')),
 ]
 
-# Esto permite que Django encuentre las fotos de tus productos
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

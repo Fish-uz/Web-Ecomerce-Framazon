@@ -1,0 +1,51 @@
+{% extends "shop/layout/base.html" %}
+{% block title %}Vender Producto - Framazon{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 mx-auto" style="max-width: 700px;">
+        <div class="card-body p-4">
+            <h2 class="fw-bold mb-4 text-center">Publicar nuevo producto</h2>
+            <form action="." method="post" enctype="multipart/form-data"> {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Categoría</label>
+                        {{ form.category }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nombre del producto</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Imagen del producto</label>
+                        {{ form.image }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Descripción</label>
+                        {{ form.description }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Precio (USD)</label>
+                        {{ form.price }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Stock inicial</label>
+                        {{ form.stock }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold rounded-pill mt-4 shadow-sm">
+                    Subir a Framazon
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilizamos los inputs de Django para que no se vean feos */
+    input, select, textarea { 
+        display: block; width: 100%; padding: 0.375rem 0.75rem; 
+        font-size: 1rem; border: 1px solid #dee2e6; border-radius: 0.375rem; 
+    }
+</style>
+{% endblock %}

@@ -61,7 +61,7 @@
                         <span>${{ cart.get_total_price }}</span>
                     </div>
                     <div class="d-grid">
-                        <a href="#" class="btn btn-warning btn-lg fw-bold rounded-pill shadow-sm">
+                        <a href="{% url 'shop:order_create' %}" class="btn btn-warning btn-lg fw-bold rounded-pill shadow-sm">
                             Proceder al pago
                         </a>
                     </div>

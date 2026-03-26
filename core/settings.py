@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'shop',
+    'cart',
 ]
 
 MIDDLEWARE = [
@@ -121,3 +122,7 @@ STATIC_URL = 'static/'
 import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+LOGIN_REDIRECT_URL = 'shop:product_list'
+LOGOUT_REDIRECT_URL = 'shop:product_list'
+CART_SESSION_ID = 'cart'

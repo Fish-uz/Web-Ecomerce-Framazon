@@ -2,6 +2,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Category, Product
 from django.views.decorators.http import require_POST
 from .cart import Cart
+from .forms import OrderCreateForm
+from .models import OrderItem
+from django.utils.text import slugify
+from .forms import OrderCreateForm, ProductForm
 
 def product_list(request, category_slug=None):
     category = None
@@ -37,3 +41,32 @@ def cart_remove(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     cart.remove(product)
     return redirect('shop:cart_detail')
+
+def order_create(request):
+    cart = Cart(request)
+    if request.method == 'POST':
+        form = OrderCreateForm(request.POST)
+        if form.is_valid():
+            order = form.save()
+            for item in cart:
+                OrderItem.objects.create(order=order,
+                                        product=item['product'],
+                                        price=item['price'],
+                                        quantity=item['quantity'])
+            cart.clear()
+            return render(request, 'shop/order/created.html', {'order': order})
+    else:
+        form = OrderCreateForm()
+    return render(request, 'shop/order/create.html', {'cart': cart, 'form': form})
+
+def product_create(request):
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES) # IMPORTANTE: request.FILES para la imagen
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.slug = slugify(product.name) # Crea el slug automático
+            product.save()
+            return redirect('shop:product_list')
+    else:
+        form = ProductForm()
+    return render(request, 'shop/product/create.html', {'form': form})
