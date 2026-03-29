@@ -46,7 +46,7 @@
                     <a href="{% url 'shop:cart_detail' %}" class="btn btn-outline-light btn-sm rounded-pill me-2 position-relative">
                         <i class="bi bi-cart3"></i>
                         <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            {{ cart|length }}
+                            {{ cart_total_count|default:"0" }}
                         </span>
                     </a>
                 {% if user.is_authenticated %}

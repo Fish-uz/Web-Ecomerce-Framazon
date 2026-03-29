@@ -55,9 +55,12 @@ def cart_add(request, product_id):
                  quantity=cd['quantity'], 
                  override_quantity=cd['override'])
         
+        # Si es AJAX, devolvemos el nuevo total para el badge
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({'cart_count': len(cart)})
-            
+            total_items = sum(item['quantity'] for item in cart)
+            return JsonResponse({'cart_count': total_items})
+    
+    # Si no es AJAX (respaldo), redirige al detalle del carrito
     return redirect('shop:cart_detail')
 
 def cart_detail(request):
