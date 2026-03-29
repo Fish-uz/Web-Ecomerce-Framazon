@@ -1,0 +1,36 @@
+{% extends "shop/layout/base.html" %}
+{% block content %}
+<div class="container">
+    <h2 class="fw-bold mb-4">Mis Pedidos</h2>
+    <div class="card shadow border-0 rounded-4">
+        <div class="table-responsive p-3">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Pedido #</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>{{ order.created|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if order.paid %}
+                                <span class="badge bg-success">Pagado</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ order.get_total_cost }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

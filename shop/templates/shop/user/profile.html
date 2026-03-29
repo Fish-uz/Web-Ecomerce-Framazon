@@ -1,0 +1,58 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Mi Perfil</h2>
+    <hr>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <img src="https://ui-avatars.com/api/?name={{ request.user.username }}" class="rounded-circle mb-3">
+                    <h5>{{ request.user.get_full_name|default:request.user.username }}</h5>
+                    <p class="text-muted">{{ request.user.email }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-tabs active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button">Pedidos Activos</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-tabs" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button">Historial Completo</button>
+                </li>
+            </ul>
+            <div class="tab-content mt-3" id="myTabContent">
+                <div class="tab-pane fade show active" id="active" role="tabpanel">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in active_orders %}
+                            <tr>
+                                <td>#{{ order.id }}</td>
+                                <td>{{ order.created|date:"d/m/Y" }}</td>
+                                <td><span class="badge bg-warning">{{ order.get_status_display }}</span></td>
+                                <td>${{ order.get_total_cost }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4">No tienes pedidos en curso.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

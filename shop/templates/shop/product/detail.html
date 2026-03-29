@@ -1,4 +1,5 @@
-{% extends "shop/base.html" %} {% block title %} {{ product.name }} - Framazon {% endblock %}
+{% extends "layout/base.html" %} 
+{% block title %} {{ product.name }} - Framazon {% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -14,17 +15,67 @@
             <h2 class="text-danger fw-bold">${{ product.price }}</h2>
             <p class="mt-4">{{ product.description|linebreaks }}</p>
             
-            <form action="{% url 'shop:cart_add' product.id %}" method="post" class="mt-4">
+            <form action="{% url 'shop:cart_add' product.id %}" method="post" class="mt-4 cart-form">
                 {% csrf_token %}
                 <div class="input-group mb-3" style="max-width: 200px;">
                     <span class="input-group-text">Cantidad</span>
                     <input type="number" name="quantity" value="1" min="1" class="form-control">
+                    <input type="hidden" name="override" value="False">
                 </div>
                 <button type="submit" class="btn btn-warning btn-lg rounded-pill fw-bold w-100 shadow-sm">
-                    Agregar al carrito
+                    <i class="bi bi-cart-plus"></i> Agregar al carrito
                 </button>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cartForm = document.querySelector('.cart-form');
+        if (cartForm) {
+            cartForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const actionUrl = this.action;
+
+                fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Error en la petición');
+                    return response.json();
+                })
+                .then(data => {
+                    const cartCountBadge = document.getElementById('cart-count');
+                    if (cartCountBadge && data.cart_count !== undefined) {
+                        cartCountBadge.innerText = data.cart_count;
+                        
+                        // Mostrar Toast de Bootstrap
+                        const toastEl = document.getElementById('cartToast');
+                        if (toastEl) {
+                            const toast = new bootstrap.Toast(toastEl);
+                            toast.show();
+                        } else {
+                            alert("¡Producto añadido!");
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Si falla el AJAX, enviamos el form normalmente como respaldo
+                    cartForm.submit();
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

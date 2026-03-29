@@ -27,6 +27,15 @@ class Product(models.Model):
         return self.name
 
 class Order(models.Model):
+    # Opciones de estado unificadas aquí
+    STATUS_CHOICES = (
+        ('pending', 'Pendiente de Pago'),
+        ('paid', 'Pagado / Procesando'),
+        ('shipped', 'Enviado'),
+        ('delivered', 'Entregado'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True, blank=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.EmailField()
@@ -37,6 +46,8 @@ class Order(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     paid = models.BooleanField(default=False)
+    # Campo status agregado correctamente a la clase única
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     class Meta:
         ordering = ['-created']

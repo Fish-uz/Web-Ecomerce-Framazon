@@ -13,6 +13,8 @@ urlpatterns = [
     path('cart/remove/<int:product_id>/', views.cart_remove, name='cart_remove'),
     path('order/create/', views.order_create, name='order_create'),
     path('product/create/', views.product_create, name='product_create'),
+    path('my-orders/', views.my_orders, name='my_orders'),
+    path('profile/', views.user_profile, name='user_profile'),
 
     # 2. RUTAS DINÁMICAS (Van al final)
     path('<slug:category_slug>/', views.product_list, name='product_list_by_category'),

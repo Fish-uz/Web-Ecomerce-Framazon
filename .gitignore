@@ -5,3 +5,4 @@ db.sqlite3
 media/
 .vscode/
 *.log
+.DS_Store
