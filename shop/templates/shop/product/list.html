@@ -4,7 +4,7 @@
 {% block title %}Inicio - Framazon{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-4">
     <div class="row">
         <div class="col-md-3">
             <div class="card shadow-sm border-0 mb-4">
@@ -30,35 +30,36 @@
             <h2 class="mb-4 fw-bold">{% if category %}{{ category.name }}{% else %}Nuestros Productos{% endif %}</h2>
             <div class="row g-4">
                 {% for product in products %}
-            <div class="col-6 col-sm-6 col-md-4 col-lg-3 mb-4 d-flex align-items-stretch">
-                <div class="card h-100 shadow-sm border-0 rounded-4 w-100 p-2 overflow-hidden">
-                    <div class="product-image-container d-flex align-items-center justify-content-center p-2" style="height: 180px;">
-                        <a href="{{ product.get_absolute_url }}">
-                            {% if product.image %}
-                                <img src="{{ product.image.url }}" class="card-img-top img-fluid" alt="{{ product.name }}" style="max-height: 100%; width: auto;">
-                            {% else %}
-                                <img src="https://via.placeholder.com/150" class="card-img-top img-fluid" alt="No Image">
-                            {% endif %}
-                        </a>
-                    </div>
-                    <div class="card-body d-flex flex-column p-2">
-                        <h6 class="card-title mb-1 fw-bold text-truncate" title="{{ product.name }}">
-                            <a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name }}</a>
-                        </h6>
-                        <p class="card-text fs-5 text-danger fw-bold mb-2">
-                            ${{ product.price }}
-                        </p>
-                        <form action="{% url 'shop:cart_add' product.id %}" method="post" class="mt-auto">
-                            {% csrf_token %}
-                            <input type="hidden" name="quantity" value="1">
-                            <input type="hidden" name="override" value="False">
-                            <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold rounded-pill p-1">
-                                Agregar al carrito
-                            </button>
-                        </form>
+                <div class="col-6 col-sm-6 col-md-4 col-lg-3 mb-4 d-flex align-items-stretch">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 w-100 p-2 overflow-hidden">
+                        <div class="product-image-container d-flex align-items-center justify-content-center p-2" style="height: 180px;">
+                            <a href="{{ product.get_absolute_url }}">
+                                {% if product.image %}
+                                    <img src="{{ product.image.url }}" class="card-img-top img-fluid" alt="{{ product.name }}" style="max-height: 100%; width: auto;">
+                                {% else %}
+                                    <img src="https://via.placeholder.com/150" class="card-img-top img-fluid" alt="No Image">
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="card-body d-flex flex-column p-2">
+                            <h6 class="card-title mb-1 fw-bold text-truncate" title="{{ product.name }}">
+                                <a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name }}</a>
+                            </h6>
+                            <p class="card-text fs-5 text-danger fw-bold mb-2">
+                                ${{ product.price }}
+                            </p>
+                            
+                            <form action="{% url 'shop:cart_add' product.id %}" method="post" class="mt-auto">
+                                {% csrf_token %}
+                                <input type="hidden" name="quantity" value="1">
+                                <input type="hidden" name="override" value="False">
+                                <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold rounded-pill p-1">
+                                    Agregar al carrito
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
                 {% empty %}
                 <div class="col-12 text-center">
                     <p class="text-muted">No hay productos disponibles.</p>
@@ -68,5 +69,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}

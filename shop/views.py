@@ -6,18 +6,22 @@ from django.contrib.auth import login
 from django.http import JsonResponse
 from django.db.models import Q
 from django.utils.text import slugify
-from .models import Category, Product, Order, OrderItem
-from .forms import OrderCreateForm, ProductForm, CartAddProductForm
+from .models import Category, Product, Order, OrderItem, ProductImage, Review
+from .forms import OrderCreateForm, ProductForm, CartAddProductForm, ProductImageFormSet, ProductImageForm
 from .cart import Cart
 from django.contrib import messages
+from django.forms import inlineformset_factory
+from .forms import ReviewForm
 
 def product_list(request, category_slug=None):
     category = None
     categories = Category.objects.all()
     products = Product.objects.filter(available=True)
-    search_query = request.GET.get('search')
+    
+    search_query = request.GET.get('q') 
     if search_query:
         products = products.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
+    
     if category_slug:
         category = get_object_or_404(Category, slug=category_slug)
         products = products.filter(category=category)
@@ -30,10 +34,29 @@ def product_list(request, category_slug=None):
 
 def product_detail(request, id, slug):
     product = get_object_or_404(Product, id=id, slug=slug, available=True)
+    reviews = product.reviews.all()
     cart_product_form = CartAddProductForm()
+    
+    can_review = False
+    already_reviewed = False
+    
+    if request.user.is_authenticated:
+        already_reviewed = Review.objects.filter(product=product, user=request.user).exists()
+        is_vendedor = product.vendedor == request.user
+        has_received_product = OrderItem.objects.filter(
+            order__user=request.user, 
+            product=product,
+            order__status='delivered'
+        ).exists()
+        
+        if has_received_product and not is_vendedor and not already_reviewed:
+            can_review = True
+            
     return render(request, 'shop/product/detail.html', {
-        'product': product, 
-        'cart_product_form': cart_product_form
+        'product': product,
+        'reviews': reviews,
+        'cart_product_form': cart_product_form,
+        'can_review': can_review
     })
 
 @require_POST
@@ -44,16 +67,18 @@ def cart_add(request, product_id):
     
     if form.is_valid():
         cd = form.cleaned_data
+        if cd['quantity'] > product.stock:
+            messages.error(request, f'Lo sentimos, solo hay {product.stock} unidades disponibles.')
+            return redirect('shop:product_detail', id=product.id, slug=product.slug)
+        
         cart.add(product=product,
                  quantity=cd['quantity'],
                  override_quantity=cd['override'])
     
-    # Esto te devuelve a la página donde estabas (la lista o el detalle)
-    return redirect(request.META.get('HTTP_REFERER', 'shop:product_list'))
+    return redirect('shop:cart_detail')
 
 def cart_detail(request):
     cart = Cart(request)
-    # CORRECCIÓN: Ruta con prefijo shop/
     return render(request, 'shop/cart/detail.html', {'cart': cart})
 
 def cart_remove(request, product_id):
@@ -74,34 +99,39 @@ def order_create(request):
             for item in cart:
                 OrderItem.objects.create(order=order, product=item['product'], price=item['price'], quantity=item['quantity'])
             cart.clear()
-            # CORRECCIÓN: Ruta con prefijo shop/
             return render(request, 'shop/order/created.html', {'order': order})
     else:
         form = OrderCreateForm()
-    # CORRECCIÓN: Ruta con prefijo shop/
     return render(request, 'shop/order/create.html', {'cart': cart, 'form': form})
 
 @login_required
 def my_orders(request):
     orders = Order.objects.filter(user=request.user)
-    # CORRECCIÓN: Ruta con prefijo shop/
     return render(request, 'shop/order/my_orders.html', {'orders': orders})
 
 @login_required
 def user_profile(request):
-    # Pedidos que NO han sido entregados ni cancelados (están en camino)
-    active_orders = Order.objects.filter(user=request.user).exclude(status__in=['delivered', 'canceled'])
-    
-    # Todo el historial (para el contador y la pestaña de historial)
+    # Variables originales para tus pestañas
+    active_orders = Order.objects.filter(user=request.user).exclude(status__in=['delivered', 'canceled', 'completed'])
     order_history = Order.objects.filter(user=request.user)
-    
-    # PRODUCTOS PUBLICADOS (Tus ventas)
     my_products = Product.objects.filter(vendedor=request.user) 
+    mis_ventas = OrderItem.objects.filter(product__vendedor=request.user).order_by('-id')
     
+    # Lógica de filtrado para la pestaña "Gestionar Ventas"
+    status_filter = request.GET.get('status')
+    orders_filtered = Order.objects.filter(items__product__vendedor=request.user).distinct()
+    
+    if status_filter:
+        orders_filtered = orders_filtered.filter(status=status_filter)
+    
+    # Un solo contexto con TODO para que no se pierda nada en el HTML
     context = {
         'active_orders': active_orders,
         'order_history': order_history,
         'my_products': my_products,
+        'mis_ventas': mis_ventas,
+        'orders': orders_filtered, # Usamos esta para la tabla con filtros
+        'status_choices': Order.STATUS_CHOICES
     }
     return render(request, 'shop/user/profile.html', context)
 
@@ -109,28 +139,31 @@ def user_profile(request):
 def product_create(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
-        if form.is_valid():
-            nuevo_producto = form.save(commit=False)
-            nuevo_producto.vendedor = request.user
-            nuevo_producto.save()
+        formset = ProductImageFormSet(request.POST, request.FILES)
+        
+        if form.is_valid() and formset.is_valid():
+            product = form.save(commit=False)
+            product.vendedor = request.user
+            product.save() 
             
-            # Mensaje de éxito
-            messages.success(request, '¡Producto publicado con éxito!')
+            instances = formset.save(commit=False)
+            for i, instance in enumerate(instances):
+                instance.product = product
+                instance.save()
+                if i == 0:
+                    product.image = instance.image
+                    product.save()
             
-            # Redirigimos al perfil añadiendo un parámetro en la URL para activar la pestaña
-            return redirect('/profile/?tab=ventas') 
-        else:
-            messages.error(request, 'Hubo un error al cargar el producto. Revisa los datos.')
+            return redirect('shop:product_list')
     else:
         form = ProductForm()
+        formset = ProductImageFormSet()
     
-    return render(request, 'shop/product/create.html', {'form': form})
+    return render(request, 'shop/product/create.html', {'form': form, 'formset': formset})
 
 def register(request):
-    # SI EL USUARIO YA ESTÁ LOGUEADO, LO MANDAMOS A LA LISTA DE PRODUCTOS
     if request.user.is_authenticated:
         return redirect('shop:product_list')
-
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
@@ -144,12 +177,115 @@ def register(request):
 @login_required
 def edit_profile(request):
     if request.method == 'POST':
-        # Actualizamos los datos básicos del modelo User de Django
         request.user.first_name = request.POST.get('first_name')
         request.user.last_name = request.POST.get('last_name')
         request.user.email = request.POST.get('email')
         request.user.save()
         messages.success(request, '¡Perfil actualizado con éxito!')
         return redirect('shop:user_profile')
-    
     return render(request, 'shop/user/edit_profile.html')
+
+@login_required
+def product_edit(request, id):
+    product = get_object_or_404(Product, id=id, vendedor=request.user)
+    existing_images_count = product.images.count()
+    available_extra = max(0, 6 - existing_images_count)
+
+    DynamicImageFormSet = inlineformset_factory(
+        Product, ProductImage, 
+        form=ProductImageForm, 
+        extra=available_extra, 
+        can_delete=True, 
+        max_num=6
+    )
+
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        formset = DynamicImageFormSet(request.POST, request.FILES, instance=product)
+        
+        if form.is_valid() and formset.is_valid():
+            product = form.save()
+            formset.save()
+            if product.images.exists():
+                product.image = product.images.first().image
+                product.save()
+
+            messages.success(request, 'Producto actualizado correctamente.')
+            return redirect('/profile/#mis-publicaciones')
+    else:
+        form = ProductForm(instance=product)
+        formset = DynamicImageFormSet(instance=product)
+    
+    return render(request, 'shop/product/edit.html', {
+        'form': form,
+        'formset': formset,
+        'product': product
+    })
+
+@login_required
+@require_POST
+def update_order_status(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    is_vendedor = OrderItem.objects.filter(order=order, product__vendedor=request.user).exists()
+    
+    if not is_vendedor:
+        messages.error(request, "No tienes permiso para gestionar este pedido.")
+        return redirect('shop:user_profile')
+    
+    new_status = request.POST.get('status')
+    if new_status == 'shipped':
+        order.status = 'shipped'
+        order.courier_name = request.POST.get('courier_name')
+        order.tracking_number = request.POST.get('tracking_number')
+        order.courier_contact = request.POST.get('courier_contact')
+        if 'shipping_proof' in request.FILES:
+            order.shipping_proof = request.FILES['shipping_proof']
+        order.save()
+        messages.success(request, "Información de envío actualizada.")
+    else:
+        order.status = new_status
+        order.save()
+    
+    return redirect('/profile/#gestionar-ventas')
+
+@login_required
+@require_POST
+def confirm_info(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order.buyer_confirmed_info = True
+    order.save()
+    messages.success(request, "Has confirmado que recibiste la información de envío.")
+    return redirect('shop:user_profile')
+
+@login_required
+@require_POST
+def decline_info(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    reason = request.POST.get('rejection_reason')
+    if reason:
+        order.status = 'info_rejected'
+        order.rejection_reason = reason
+        order.buyer_confirmed_info = False
+        order.save()
+        messages.warning(request, "Has declinado la información. El vendedor ha sido notificado.")
+    return redirect('shop:user_profile')
+
+@login_required
+def finalize_order(request, order_id):
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        rating = request.POST.get('rating')
+        comment = request.POST.get('comment')
+
+        for item in order.items.all():
+            Review.objects.create(
+                product=item.product,
+                user=request.user,
+                rating=rating,
+                comment=comment
+            )
+
+        order.status = 'completed'
+        order.save()
+        messages.success(request, "¡Pedido finalizado con éxito!")
+    return redirect('shop:user_profile')

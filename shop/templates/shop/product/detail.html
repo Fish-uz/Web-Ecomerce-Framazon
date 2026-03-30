@@ -1,81 +1,229 @@
 {% extends "shop/layout/base.html" %}
-{% block title %} {{ product.name }} - Framazon {% endblock %}
+{% load static %}
+
+{% block title %}{{ product.name }} - Framazon{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-    <div class="row">
-        <div class="col-md-6 text-center">
-            <img src="{% if product.image %}{{ product.image.url }}{% else %}https://via.placeholder.com/400{% endif %}" 
-                 class="img-fluid rounded shadow-sm" style="max-height: 400px;">
-        </div>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'shop:product_list' %}" class="text-decoration-none text-dark">Tienda</a></li>
+            <li class="breadcrumb-item"><a href="{{ product.category.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.category.name }}</a></li>
+            <li class="breadcrumb-item active">{{ product.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
         <div class="col-md-6">
-            <h1 class="fw-bold">{{ product.name }}</h1>
-            <h5 class="text-muted">Categoría: {{ product.category.name }}</h5>
-            <hr>
-            <h2 class="text-danger fw-bold">${{ product.price }}</h2>
-            <p class="mt-4">{{ product.description|linebreaks }}</p>
-            
-            <form action="{% url 'shop:cart_add' product.id %}" method="post" class="mt-4 cart-form">
-                {% csrf_token %}
-                <div class="input-group mb-3" style="max-width: 200px;">
-                    <span class="input-group-text">Cantidad</span>
-                    <input type="number" name="quantity" value="1" min="1" class="form-control">
-                    <input type="hidden" name="override" value="False">
+            <div class="card border-0 shadow-sm overflow-hidden rounded-4">
+                <div class="main-image-container bg-white d-flex align-items-center justify-content-center" style="height: 450px;">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" id="main-product-img" class="img-fluid" style="max-height: 100%; object-fit: contain;" alt="{{ product.name }}">
+                    {% else %}
+                        <img src="{% static 'img/no_image.png' %}" id="main-product-img" class="img-fluid" alt="No image">
+                    {% endif %}
                 </div>
-                <button type="submit" class="btn btn-warning btn-lg rounded-pill fw-bold w-100 shadow-sm">
-                    <i class="bi bi-cart-plus"></i> Agregar al carrito
-                </button>
-            </form>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                {% if product.image %}
+                <div class="thumb-slot border rounded-3 p-1 bg-white active" style="width: 70px; height: 70px; cursor: pointer;">
+                    <img src="{{ product.image.url }}" class="w-100 h-100 thumb-img" style="object-fit: cover;">
+                </div>
+                {% endif %}
+
+                {% for img in product.images.all %}
+                    {% if img.image.url != product.image.url %}
+                    <div class="thumb-slot border rounded-3 p-1 bg-white" style="width: 70px; height: 70px; cursor: pointer;">
+                        <img src="{{ img.image.url }}" class="w-100 h-100 thumb-img" style="object-fit: cover;">
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="ps-md-4">
+                <h1 class="fw-bold h2 mb-1">{{ product.name }}</h1>
+                <p class="text-muted mb-3 small">Vendido por: <span class="fw-bold text-dark">{{ product.vendedor.username }}</span></p>
+                
+                <hr class="my-4">
+                
+                <div class="mb-4">
+                    <span class="text-muted h5 fw-normal">USD</span>
+                    <span class="display-5 fw-bold text-dark">${{ product.price }}</span>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted">Descripción</h6>
+                    <div class="text-secondary leading-relaxed">
+                        {% if product.description %}
+                            {{ product.description|linebreaks }}
+                        {% else %}
+                            El vendedor no ha proporcionado una descripción para este producto.
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card bg-light border-0 p-4 rounded-4 shadow-sm">
+                    <form action="{% url 'shop:cart_add' product.id %}" method="post">
+                        {% csrf_token %}
+                        <label class="fw-bold small mb-2 text-uppercase text-muted">Cantidad</label>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="input-group shadow-sm" style="width: 130px;"> 
+                                <button class="btn btn-white border px-2" type="button" id="btn-minus" style="font-size: 0.9rem;">-</button>
+                                <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" 
+                                    class="form-control text-center fw-bold border-x-0 p-1" id="quantity-input" 
+                                    style="background-color: white !important; font-size: 0.95rem; height: 38px;">
+                                <button class="btn btn-white border px-2" type="button" id="btn-plus" style="font-size: 0.9rem;">+</button>
+                            </div>
+                            <span class="ms-3 text-muted small">({{ product.stock }} disponibles)</span>
+                        </div>
+                        
+                        <input type="hidden" name="override" value="False">
+
+                        <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold rounded-pill py-3 shadow-sm">
+                            <i class="bi bi-cart-plus me-2"></i> Añadir al carrito
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-5">
+    <div class="row mb-5">
+        <div class="col-md-7">
+            <h3 class="fw-bold mb-4">Opiniones de clientes</h3>
+            <div class="reviews-container">
+                {% for review in reviews %}
+                    <div class="card border-0 bg-white shadow-sm rounded-4 p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div class="text-warning mb-1">
+                                    {% for i in "12345" %}
+                                        <i class="bi bi-star{% if forloop.counter <= review.rating %}-fill{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                                <strong class="text-dark">{{ review.user.username }}</strong>
+                            </div>
+                            <small class="text-muted">{{ review.created_at|date:"d M, Y" }}</small>
+                        </div>
+                        <p class="text-secondary mb-0 small">{{ review.comment }}</p>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-4 bg-light rounded-4">
+                        <i class="bi bi-chat-dots fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Aún no hay reseñas. ¡Sé el primero en opinar!</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 sticky-md-top" style="top: 2rem;">
+                <h4 class="fw-bold mb-3">Deja tu opinión</h4>
+                
+                {% if can_review %}
+                    <form method="post" action=".">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Calificación</label>
+                            {{ review_form.rating }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Comentario</label>
+                            {{ review_form.comment }}
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100 rounded-pill py-2 fw-bold">
+                            Enviar reseña
+                        </button>
+                    </form>
+                {% elif already_reviewed %}
+                    <div class="alert alert-info rounded-4 small border-0">
+                        <i class="bi bi-check-circle-fill me-2"></i> Ya calificaste este producto.
+                    </div>
+                {% elif user.is_authenticated %}
+                    {% if product.vendedor == user %}
+                        <div class="alert alert-warning rounded-4 small border-0">
+                            <i class="bi bi-person-x me-2"></i> No puedes calificar tus propios productos.
+                        </div>
+                    {% else %}
+                        <div class="text-center p-3 border rounded-4 bg-light">
+                            <i class="bi bi-truck fs-3 text-muted"></i>
+                            <p class="small text-muted mt-2 mb-0">
+                                Podrás dejar una reseña una vez que tu pedido esté marcado como <strong>Entregado</strong>.
+                            </p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted small">Inicia sesión para dejar una reseña.</p>
+                        <a href="{% url 'login' %}" class="btn btn-outline-dark btn-sm rounded-pill px-4">Iniciar sesión</a>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+<style>
+    .thumb-slot { transition: 0.2s; opacity: 0.6; }
+    .thumb-slot:hover, .thumb-slot.active { opacity: 1; border-color: #ffc107 !important; border-width: 2px !important; }
+    
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
+    .btn-white { background-color: #fff; color: #333; }
+    .btn-white:hover { background-color: #f8f9fa; }
+
+    #id_rating, #id_comment {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.9rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+    }
+    #id_comment { min-height: 100px; }
+</style>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const cartForm = document.querySelector('.cart-form');
-        if (cartForm) {
-            cartForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(this);
-                const actionUrl = this.action;
+    const mainImg = document.getElementById('main-product-img');
+    const thumbs = document.querySelectorAll('.thumb-img');
 
-                fetch(actionUrl, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Error en la petición');
-                    return response.json();
-                })
-                .then(data => {
-                    const cartCountBadge = document.getElementById('cart-count');
-                    if (cartCountBadge && data.cart_count !== undefined) {
-                        cartCountBadge.innerText = data.cart_count;
-                        
-                        // Mostrar Toast de Bootstrap
-                        const toastEl = document.getElementById('cartToast');
-                        if (toastEl) {
-                            const toast = new bootstrap.Toast(toastEl);
-                            toast.show();
-                        } else {
-                            alert("¡Producto añadido!");
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    // Si falla el AJAX, enviamos el form normalmente como respaldo
-                    cartForm.submit();
-                });
-            });
+    thumbs.forEach(thumb => {
+        thumb.parentElement.addEventListener('click', function() {
+            mainImg.src = thumb.src;
+            document.querySelectorAll('.thumb-slot').forEach(s => s.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    const input = document.getElementById('quantity-input');
+    const btnPlus = document.getElementById('btn-plus');
+    const btnMinus = document.getElementById('btn-minus');
+    const maxStock = parseInt("{{ product.stock }}");
+
+    btnPlus.addEventListener('click', () => {
+        let currentVal = parseInt(input.value) || 0;
+        if (currentVal < maxStock) {
+            input.value = currentVal + 1;
         }
+    });
+
+    btnMinus.addEventListener('click', () => {
+        let currentVal = parseInt(input.value) || 1;
+        if (currentVal > 1) {
+            input.value = currentVal - 1;
+        }
+    });
+
+    input.addEventListener('input', function() {
+        let val = parseInt(this.value);
+        if (val > maxStock) this.value = maxStock;
+        else if (val < 1) this.value = 1;
     });
 </script>
 {% endblock %}

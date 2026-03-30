@@ -1,0 +1,117 @@
+{% extends "shop/layout/base.html" %}
+{% load static %}
+
+{% block title %}Editar {{ product.name }} - Framazon{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 mx-auto" style="max-width: 700px;">
+        <div class="card-body p-4">
+            <h2 class="fw-bold mb-4">Editar Producto</h2>
+            
+            <form action="." method="post" enctype="multipart/form-data" id="product-form">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Nombre del producto</label>
+                        {{ form.name }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Categoría</label>
+                        {{ form.category }}
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Precio (USD)</label>
+                        {{ form.price }}
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Stock</label>
+                        {{ form.stock }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Descripción</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <label class="form-label fw-bold">Fotos del producto <span class="text-muted fw-normal">(Máximo 6)</span></label>
+                        {{ formset.management_form }}
+                        
+                        <div class="d-flex flex-wrap gap-2" id="image-gallery">
+                            {% for f in formset %}
+                                <div class="image-slot border rounded d-flex align-items-center justify-content-center position-relative bg-light" 
+                                     style="width: 100px; height: 100px; cursor: pointer; overflow: hidden;">
+                                    
+                                    {% if f.instance.pk %}
+                                        <img src="{{ f.instance.image.url }}" class="w-100 h-100" style="object-fit: cover;">
+                                        <div class="delete-overlay position-absolute top-0 end-0 p-1 bg-danger text-white rounded-bottom-start" title="Eliminar">
+                                            {{ f.DELETE }} <i class="bi bi-trash small"></i>
+                                        </div>
+                                    {% else %}
+                                        <span class="plus-icon fs-4 text-muted">+</span>
+                                    {% endif %}
+                                    
+                                    <div class="d-none">{{ f.image }} {{ f.id }}</div>
+                                    <img src="#" class="preview-img d-none w-100 h-100" style="object-fit: cover;">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-5">
+                        <button type="submit" class="btn btn-dark btn-lg w-100 rounded-pill fw-bold">Guardar Cambios</button>
+                        <a href="/profile/#mis-publicaciones" class="btn btn-link w-100 text-muted mt-2 text-decoration-none">Cancelar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .image-slot:hover { border-color: #ffc107 !important; background-color: #fff9e6 !important; }
+    input[type="number"], input[type="text"], select, textarea {
+        display: block; width: 100%; padding: 0.5rem 0.8rem; border: 1px solid #dee2e6; border-radius: 0.5rem;
+    }
+    .delete-overlay { z-index: 10; cursor: default; }
+    .delete-overlay input[type="checkbox"] { cursor: pointer; }
+</style>
+
+<script>
+    document.querySelectorAll('.image-slot').forEach(slot => {
+        const input = slot.querySelector('input[type="file"]');
+        const preview = slot.querySelector('.preview-img');
+        const icon = slot.querySelector('.plus-icon');
+        const deleteDiv = slot.querySelector('.delete-overlay');
+
+        slot.addEventListener('click', (e) => {
+            if (deleteDiv && deleteDiv.contains(e.target)) {
+                return; 
+            }
+            if (input) input.click();
+        });
+
+        if (input) {
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if(icon) icon.classList.add('d-none');
+                        const currentImg = slot.querySelector('img:not(.preview-img)');
+                        if (currentImg) currentImg.classList.add('d-none');
+                        
+                        preview.src = e.target.result;
+                        preview.classList.remove('d-none');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

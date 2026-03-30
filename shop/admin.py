@@ -1,5 +1,16 @@
 from django.contrib import admin
-from .models import Category, Product, Order, OrderItem
+from .models import Category, Product, Order, OrderItem, ProductImage
+
+# --- INLINES ---
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    raw_id_fields = ['product']
+
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 3 # Permite subir 3 fotos de golpe
+
+# --- REGISTROS ---
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -9,13 +20,10 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['name', 'slug', 'price', 'stock', 'available', 'vendedor', 'created']
-    list_filter = ['available', 'created']
+    list_filter = ['available', 'created', 'vendedor'] # Unificado
     list_editable = ['price', 'stock', 'available']
     prepopulated_fields = {'slug': ('name',)}
-
-class OrderItemInline(admin.TabularInline):
-    model = OrderItem
-    raw_id_fields = ['product']
+    inlines = [ProductImageInline] # Añadidas las fotos adicionales aquí
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):

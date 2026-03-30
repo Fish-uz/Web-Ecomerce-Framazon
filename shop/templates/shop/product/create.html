@@ -6,7 +6,7 @@
     <div class="card shadow-sm border-0 mx-auto" style="max-width: 700px;">
         <div class="card-body p-4">
             <h2 class="fw-bold mb-4 text-center">Publicar nuevo producto</h2>
-            <form action="." method="post" enctype="multipart/form-data"> {% csrf_token %}
+            <form action="." method="post" enctype="multipart/form-data" id="product-form"> {% csrf_token %}
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Categoría</label>
@@ -16,14 +16,33 @@
                         <label class="form-label fw-bold">Nombre del producto</label>
                         {{ form.name }}
                     </div>
-                    <div class="col-12">
-                        <label class="form-label fw-bold">Imagen del producto</label>
-                        {{ form.image }}
+
+                    <div class="col-12 mt-4">
+                        <label class="form-label fw-bold">Fotos del producto <span class="text-muted fw-normal">(Obligatorio: Subir al menos 1 Foto)</span></label>
+                        {{ formset.management_form }}
+                        
+                        <div class="d-flex flex-wrap gap-2" id="image-gallery">
+                            {% for f in formset %}
+                                <div class="image-slot border rounded d-flex align-items-center justify-content-center position-relative bg-light {% if forloop.first %}border-warning border-2{% endif %}" 
+                                     style="{% if forloop.first %}width: 120px; height: 120px;{% else %}width: 85px; height: 85px;{% endif %} cursor: pointer; overflow: hidden; transition: 0.3s;">
+                                    
+                                    <div class="text-center">
+                                        <span class="plus-icon fs-4 text-muted">+</span>
+                                        {% if forloop.first %}<br><small class="text-warning fw-bold" style="font-size: 10px;">PRINCIPAL</small>{% endif %}
+                                    </div>
+
+                                    <div class="d-none">{{ f.image }}</div>
+                                    <img src="#" class="preview-img d-none w-100 h-100" style="object-fit: cover;">
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <div class="col-12">
+
+                    <div class="col-12 mt-3">
                         <label class="form-label fw-bold">Descripción</label>
                         {{ form.description }}
                     </div>
+
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Precio (USD)</label>
                         {{ form.price }}
@@ -33,6 +52,7 @@
                         {{ form.stock }}
                     </div>
                 </div>
+
                 <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold rounded-pill mt-4 shadow-sm">
                     Subir a Framazon
                 </button>
@@ -42,10 +62,31 @@
 </div>
 
 <style>
-    /* Estilizamos los inputs de Django para que no se vean feos */
-    input, select, textarea { 
-        display: block; width: 100%; padding: 0.375rem 0.75rem; 
-        font-size: 1rem; border: 1px solid #dee2e6; border-radius: 0.375rem; 
-    }
+    input, select, textarea { display: block; width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #dee2e6; border-radius: 0.375rem; }
+    .image-slot:hover { border-color: #ffc107 !important; transform: scale(1.05); }
+    .image-slot img { position: absolute; top:0; left:0; }
 </style>
+
+<script>
+document.querySelectorAll('.image-slot').forEach(slot => {
+    const input = slot.querySelector('input[type="file"]');
+    const preview = slot.querySelector('.preview-img');
+    const iconContainer = slot.querySelector('.text-center');
+
+    slot.addEventListener('click', () => input.click());
+
+    input.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                iconContainer.classList.add('d-none');
+                slot.style.borderColor = "#ffc107";
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+});
+</script>
 {% endblock %}

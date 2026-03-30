@@ -39,3 +39,12 @@ class Cart:
     def clear(self):
         del self.session['cart']
         self.save()
+
+    def remove(self, product):
+        """
+        Elimina un producto del carrito.
+        """
+        product_id = str(product.id)
+        if product_id in self.cart:
+            del self.cart[product_id]
+            self.save()

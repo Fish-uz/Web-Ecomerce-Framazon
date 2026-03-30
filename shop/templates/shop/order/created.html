@@ -10,9 +10,12 @@
         <h1 class="fw-bold">¡Gracias por comprar en Framazon!</h1>
         <p class="fs-5 mt-3 text-muted">Tu pedido es el <strong>#{{ order.id }}</strong></p>
         <p>Enviaremos los detalles a <strong>{{ order.email }}</strong>.</p>
-        <div class="mt-4">
-            <a href="{% url 'shop:product_list' %}" class="btn btn-warning btn-lg rounded-pill fw-bold px-5">
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'shop:product_list' %}" class="btn btn-outline-dark rounded-pill px-4">
                 Volver a la tienda
+            </a>
+            <a href="{% url 'shop:user_profile' %}" class="btn btn-warning rounded-pill px-4 fw-bold">
+                Ir a mi Perfil
             </a>
         </div>
     </div>

@@ -20,12 +20,12 @@
                 <div class="border-top pt-3 mt-4">
                     <div class="row">
                         <div class="col-6 border-end">
-                            <h6 class="fw-bold mb-0">{{ order_history.count }}</h6>
+                            <h6 class="fw-bold mb-0">{{ active_orders.count|default:"0" }}</h6>
                             <small class="text-muted">Pedidos</small>
                         </div>
                         <div class="col-6">
-                            <h6 class="fw-bold mb-0">{{ my_products.count }}</h6>
-                            <small class="text-muted">Ventas</small>
+                            <h6 class="fw-bold mb-0">{{ my_products.count|default:"0" }}</h6>
+                            <small class="text-muted">Publicaciones</small>
                         </div>
                     </div>
                 </div>
@@ -49,8 +49,13 @@
                             </button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link fw-bold border-0 bg-transparent py-3 px-4" data-bs-toggle="tab" data-bs-target="#ventas">
+                            <button class="nav-link fw-bold border-0 bg-transparent py-3 px-4" data-bs-toggle="tab" data-bs-target="#mis-publicaciones">
                                 <i class="bi bi-tag me-2"></i>Mis Publicaciones
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link fw-bold border-0 bg-transparent py-3 px-4" data-bs-toggle="tab" data-bs-target="#gestionar-ventas">
+                                <i class="bi bi-graph-up-arrow me-2"></i>Mis Ventas
                             </button>
                         </li>
                     </ul>
@@ -63,9 +68,8 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th>ID Pedido</th>
-                                            <th>Fecha</th>
                                             <th>Estado</th>
-                                            <th>Total</th>
+                                            <th>Información de Envío</th>
                                             <th>Acción</th>
                                         </tr>
                                     </thead>
@@ -73,20 +77,58 @@
                                         {% for order in active_orders %}
                                         <tr>
                                             <td class="fw-bold">#{{ order.id }}</td>
-                                            <td>{{ order.created|date:"d M, Y" }}</td>
                                             <td>
                                                 <span class="badge rounded-pill bg-info text-dark">{{ order.get_status_display }}</span>
+                                                {% if order.status == 'info_rejected' %}
+                                                    <div class="text-danger small mt-1">Rechazado: {{ order.rejection_reason }}</div>
+                                                {% endif %}
                                             </td>
-                                            <td>${{ order.get_total_cost }}</td>
-                                            <td><a href="#" class="btn btn-sm btn-outline-dark rounded-pill">Detalles</a></td>
+                                            <td>
+                                                {% if order.status == 'shipped' or order.status == 'info_rejected' %}
+                                                    <div class="small">
+                                                        <strong class="text-dark">{{ order.courier_name }}</strong><br>
+                                                        <span class="text-muted">Tlf: {{ order.courier_phone }}</span><br>
+                                                        <span class="text-muted">Guía: {{ order.tracking_number }}</span><br>
+                                                        {% if order.shipping_proof %}
+                                                            <a href="{{ order.shipping_proof.url }}" target="_blank" class="text-warning fw-bold text-decoration-none small">
+                                                                <i class="bi bi-file-earmark-image"></i> Ver Comprobante
+                                                            </a>
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-muted small">Pendiente de envío</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if order.status == 'shipped' and not order.buyer_confirmed_info %}
+                                                    <div class="d-flex gap-2">
+                                                        <form action="{% url 'shop:confirm_info' order.id %}" method="post">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold small">De acuerdo</button>
+                                                        </form>
+                                                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold small" data-bs-toggle="collapse" data-bs-target="#declineForm{{ order.id }}">Declinar</button>
+                                                    </div>
+                                                    <div class="collapse mt-2" id="declineForm{{ order.id }}">
+                                                        <form action="{% url 'shop:decline_info' order.id %}" method="post" class="p-2 border rounded bg-light">
+                                                            {% csrf_token %}
+                                                            <input type="text" name="rejection_reason" class="form-control form-control-sm mb-2" placeholder="¿Por qué rechazas? (ej: Guía ilegible)" required>
+                                                            <button type="submit" class="btn btn-xs btn-danger small py-0">Confirmar Rechazo</button>
+                                                        </form>
+                                                    </div>
+                                                {% elif order.status == 'shipped' and order.buyer_confirmed_info %}
+                                                    <form action="{% url 'shop:mark_delivered' order.id %}" method="post">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-bold small">Confirmar Recepción</button>
+                                                    </form>
+                                                {% elif order.status == 'delivered' %}
+                                                    <button class="btn btn-sm btn-success rounded-pill px-3 fw-bold small" data-bs-toggle="modal" data-bs-target="#modalCalificar{{ order.id }}">Calificar</button>
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted border rounded-pill">En proceso</span>
+                                                {% endif %}
+                                            </td>
                                         </tr>
                                         {% empty %}
-                                        <tr>
-                                            <td colspan="5" class="text-center py-5 text-muted">
-                                                <i class="bi bi-box-seam d-block fs-1 mb-2 opacity-25"></i>
-                                                No tienes pedidos en camino actualmente.
-                                            </td>
-                                        </tr>
+                                        <tr><td colspan="4" class="text-center py-5 text-muted">No tienes pedidos en camino.</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -95,14 +137,13 @@
 
                         <div class="tab-pane fade" id="historial">
                             <h5 class="fw-bold mb-4">Compras Finalizadas</h5>
-                            
                             {% for order in order_history %}
-                            <div class="card border mb-3 shadow-sm">
-                                <div class="card-header bg-light py-3">
-                                    <div class="row align-items-center small text-uppercase fw-bold text-muted">
+                            <div class="card border mb-3 shadow-sm rounded-4 overflow-hidden">
+                                <div class="card-header bg-light py-3 border-0 small text-uppercase fw-bold text-muted">
+                                    <div class="row align-items-center">
                                         <div class="col-md-3">Fecha: <span class="text-dark d-block">{{ order.created|date:"d F, Y" }}</span></div>
                                         <div class="col-md-2">Total: <span class="text-dark d-block">${{ order.get_total_cost }}</span></div>
-                                        <div class="col-md-4">Enviar a: <span class="text-primary d-block" style="cursor:help;">{{ order.address|truncatechars:20 }}</span></div>
+                                        <div class="col-md-4">Enviar a: <span class="text-primary d-block">{{ order.address|truncatechars:20 }}</span></div>
                                         <div class="col-md-3 text-md-end">Pedido #{{ order.id }}</div>
                                     </div>
                                 </div>
@@ -114,10 +155,8 @@
                                                     <i class="bi bi-bag-check text-muted fs-4"></i>
                                                 </div>
                                                 <div>
-                                                    <p class="mb-0 fw-bold">Pedido de {{ order.items.count }} productos</p>
-                                                    <span class="badge {% if order.status == 'delivered' %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %} border rounded-pill">
-                                                        {{ order.get_status_display }}
-                                                    </span>
+                                                    <p class="mb-0 fw-bold">Pedido finalizado</p>
+                                                    <span class="badge bg-success-subtle text-success border rounded-pill">{{ order.get_status_display }}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -128,49 +167,111 @@
                                 </div>
                             </div>
                             {% empty %}
-                            <div class="text-center py-5 text-muted">
-                                <i class="bi bi-clock-history d-block fs-1 mb-2 opacity-25"></i>
-                                <p>Tu historial de compras está vacío.</p>
-                            </div>
+                            <div class="text-center py-5 text-muted"><p>Historial vacío.</p></div>
                             {% endfor %}
                         </div>
 
-                        <div class="tab-pane fade" id="ventas">
+                        <div class="tab-pane fade" id="mis-publicaciones">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="fw-bold mb-0">Productos que estás vendiendo</h5>
-                                <a href="{% url 'shop:product_create' %}" class="btn btn-warning btn-sm fw-bold rounded-pill">+ Nuevo Producto</a>
+                                <h5 class="fw-bold mb-0">Mis Productos</h5>
+                                <a href="{% url 'shop:product_create' %}" class="btn btn-warning btn-sm fw-bold rounded-pill">+ Nuevo</a>
                             </div>
-                            
                             <div class="row row-cols-1 row-cols-md-2 g-3">
                                 {% for product in my_products %}
                                 <div class="col">
-                                    <div class="card h-100 border shadow-sm rounded-4 overflow-hidden">
-                                        <div class="d-flex align-items-center p-2">
+                                    <div class="card h-100 border shadow-sm rounded-4 overflow-hidden p-2">
+                                        <div class="d-flex align-items-center">
                                             {% if product.image %}
-                                                <img src="{{ product.image.url }}" class="rounded-3" style="width: 70px; height: 70px; object-fit: cover;">
-                                            {% else %}
-                                                <div class="bg-light rounded-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
-                                                    <i class="bi bi-image text-muted"></i>
-                                                </div>
+                                                <img src="{{ product.image.url }}" class="rounded-3" style="width: 60px; height: 60px; object-fit: cover;">
                                             {% endif %}
                                             <div class="ms-3 flex-grow-1">
-                                                <h6 class="mb-0 fw-bold text-truncate" style="max-width: 140px;">{{ product.name }}</h6>
+                                                <h6 class="mb-0 fw-bold">{{ product.name }}</h6>
                                                 <span class="text-success small fw-bold">${{ product.price }}</span>
                                             </div>
-                                            <div class="ms-2">
-                                                <a href="#" class="btn btn-light btn-sm border-0"><i class="bi bi-pencil text-muted"></i></a>
-                                            </div>
+                                            <a href="{% url 'shop:product_edit' product.id %}" class="btn btn-light btn-sm border-0"><i class="bi bi-pencil"></i></a>
                                         </div>
                                     </div>
-                                </div>
-                                {% empty %}
-                                <div class="text-center py-5 text-muted w-100">
-                                    <i class="bi bi-shop fs-1 d-block mb-2 opacity-25"></i>
-                                    <p>No has publicado productos para vender aún.</p>
                                 </div>
                                 {% endfor %}
                             </div>
                         </div>
+
+                        <div class="tab-pane fade" id="gestionar-ventas">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold mb-0">Pedidos recibidos</h5>
+                                <div class="btn-group">
+                                    <a href="?status=#gestionar-ventas" class="btn btn-outline-dark btn-sm rounded-start-pill">Todos</a>
+                                    {% for code, name in status_choices %}
+                                        <a href="?status={{ code }}#gestionar-ventas" class="btn btn-outline-dark btn-sm {% if forloop.last %}rounded-end-pill{% endif %}">{{ name }}</a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Producto / Cliente</th>
+                                            <th>Gestión de Estado y Envío</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order_obj in orders %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="ms-1 flex-grow-1">
+                                                        <span class="small fw-bold d-block">Pedido #{{ order_obj.id }}</span>
+                                                        <span class="text-muted small">Cliente: {{ order_obj.first_name }} {{ order_obj.last_name }}</span><br>
+                                                        <a href="mailto:{{ order_obj.email }}" class="text-primary small"><i class="bi bi-envelope"></i> Contactar</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <form action="{% url 'shop:update_order_status' order_obj.id %}" method="post" enctype="multipart/form-data">
+                                                    {% csrf_token %}
+                                                    <div class="row g-2 align-items-center">
+                                                        <div class="col-auto">
+                                                            <select name="status" class="form-select form-select-sm status-select" data-order-id="{{ order_obj.id }}">
+                                                                {% for code, name in status_choices %}
+                                                                    <option value="{{ code }}" {% if order_obj.status == code %}selected{% endif %}>{{ name }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                        
+                                                        <div id="shipping-fields-{{ order_obj.id }}" class="col-12 {% if order_obj.status != 'shipped' and order_obj.status != 'info_rejected' %}d-none{% endif %} mt-2">
+                                                            <div class="p-3 bg-light border rounded-3 small">
+                                                                <div class="row g-2">
+                                                                    <div class="col-md-6">
+                                                                        <label class="form-label mb-1 fw-bold">Empresa de Envío *</label>
+                                                                        <input type="text" name="courier_name" class="form-control form-control-sm" placeholder="Zoom, Tealca..." value="{{ order_obj.courier_name|default:'' }}">
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <label class="form-label mb-1 fw-bold">Nro. Guía *</label>
+                                                                        <input type="text" name="tracking_number" class="form-control form-control-sm" value="{{ order_obj.tracking_number|default:'' }}">
+                                                                    </div>
+                                                                    <div class="col-12">
+                                                                        <label class="form-label mb-1 fw-bold">Comprobante de Envío</label>
+                                                                        <input type="file" name="shipping_proof" class="form-control form-control-sm">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-auto">
+                                                            <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3">Actualizar</button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="2" class="text-center py-5 text-muted">No hay ventas con este estatus.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -180,56 +281,32 @@
 
 <style>
     .nav-tabs .nav-link { color: #6c757d; border-bottom: 3px solid transparent !important; transition: 0.3s; }
-    .nav-tabs .nav-link.active { color: #212529 !important; border-bottom: 3px solid #ffc107 !important; background: none; }
-    .nav-tabs .nav-link:hover { color: #ffc107; }
+    .nav-tabs .nav-link.active { color: #212529 !important; border-bottom: 3px solid #0d6efd !important; background: none; }
+    .nav-tabs .nav-link:hover { color: #0d6efd; }
     .min-vh-50 { min-height: 50vh; }
-    .card-header { font-size: 0.85rem; }
+    .btn-xs { padding: 2px 8px; font-size: 0.75rem; }
 </style>
-
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="toast show align-items-center text-white {% if message.tags == 'success' %}bg-success{% else %}bg-danger{% endif %} border-0 rounded-4 shadow" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %} me-2"></i>
-                        {{ message }}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            </div>
-        {% endfor %}
-    {% endif %}
-</div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // 1. Lógica para activar la pestaña desde la URL (?tab=ventas)
-        const urlParams = new URLSearchParams(window.location.search);
-        const tabParam = urlParams.get('tab');
-
-        if (tabParam === 'ventas') {
-            const ventasTab = document.querySelector('[data-bs-target="#ventas"]');
-            if (ventasTab) {
-                // Desactivar la pestaña activa por defecto (Pedidos)
-                document.querySelector('.nav-link.active').classList.remove('active');
-                document.querySelector('.tab-pane.show.active').classList.remove('show', 'active');
-                
-                // Activar pestaña Ventas
-                ventasTab.classList.add('active');
-                document.querySelector('#ventas').classList.add('show', 'active');
-            }
+        // Lógica de pestañas para que se mantengan al recargar
+        let hash = window.location.hash;
+        if (hash) {
+            let tab = document.querySelector(`button[data-bs-target="${hash}"]`);
+            if (tab) tab.click();
         }
 
-        // 2. Auto-ocultar la notificación después de 4 segundos
-        const toasts = document.querySelectorAll('.toast');
-        toasts.forEach(toast => {
-            setTimeout(() => {
-                const bsToast = new bootstrap.Toast(toast);
-                toast.classList.remove('show');
-            }, 4000);
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const orderId = this.getAttribute('data-order-id');
+                const fields = document.getElementById(`shipping-fields-${orderId}`);
+                if (this.value === 'shipped' || this.value === 'info_rejected') {
+                    fields.classList.remove('d-none');
+                } else {
+                    fields.classList.add('d-none');
+                }
+            });
         });
     });
 </script>
-
 {% endblock %}
