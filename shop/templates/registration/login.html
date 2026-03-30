@@ -1,41 +1,50 @@
 {% extends "shop/layout/base.html" %}
 
-{% block title %}Iniciar Sesión - Framazon{% endblock %}
+{% block title %}Ingresar - Framazon{% endblock %}
 
 {% block content %}
-<div class="container">
+<script>
+    // Si el usuario retrocede y ya está logueado, forzamos recarga para que views.py lo expulse
+    if (window.performance && window.performance.navigation.type === 2) {
+        location.reload();
+    }
+</script>
+
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-5">
-            <div class="card shadow border-0 rounded-4">
+            <div class="card shadow-lg border-0 rounded-4">
                 <div class="card-body p-5">
-                    <h2 class="text-center fw-bold mb-4">Iniciar Sesión</h2>
-                    
-                    {% if form.errors %}
-                        <div class="alert alert-danger small">
-                            Tu usuario o contraseña no coinciden. Inténtalo de nuevo.
-                        </div>
-                    {% endif %}
-
+                    <h2 class="fw-bold mb-4 text-center">Iniciar Sesión</h2>
                     <form method="post">
                         {% csrf_token %}
-                        <div class="mb-3">
-                            {{ form.username.label_tag }}
-                            {{ form.username }}
+                        {% for field in form %}
+                            <div class="mb-3 position-relative">
+                                <label class="form-label fw-bold">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.name == "password" %}
+                                    <span class="position-absolute end-0 top-50 translate-middle-y me-3 mt-2" style="cursor: pointer;" onclick="togglePassword()">
+                                        <i class="bi bi-eye" id="toggleIcon"></i>
+                                    </span>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        
+                        <div class="mb-3 text-end">
+                            <a href="#" class="text-decoration-none small text-muted">¿Olvidaste tu contraseña?</a>
                         </div>
-                        <div class="mb-3">
-                            {{ form.password.label_tag }}
-                            {{ form.password }}
-                        </div>
-                        <button type="submit" class="btn btn-warning w-100 fw-bold rounded-pill mt-3">
+
+                        <button type="submit" class="btn btn-warning w-100 fw-bold rounded-pill py-2">
                             Entrar
                         </button>
-                        <div class="text-center mt-2">
-                            <a href="#" class="text-muted small text-decoration-none" onclick="alert('Función en mantenimiento: Por favor contacta al admin.')">¿Olvidaste tu contraseña?</a>
-                        </div>
                     </form>
-                    
-                    <div class="text-center mt-3">
-                        <small>¿Eres nuevo en Framazon? <a href="{% url 'shop:register' %}" class="text-decoration-none">Crea tu cuenta aquí</a></small>
+                    <div class="mt-4 text-center">
+                        <p class="text-muted">¿Eres nuevo en Framazon? 
+                            <a href="{% url 'shop:register' %}" class="text-decoration-none fw-bold text-dark">Crea tu cuenta</a>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -43,8 +52,21 @@
     </div>
 </div>
 
+<script>
+function togglePassword() {
+    const passwordField = document.querySelector('input[name="password"]');
+    const toggleIcon = document.querySelector('#toggleIcon');
+    if (passwordField.type === "password") {
+        passwordField.type = "text";
+        toggleIcon.classList.replace("bi-eye", "bi-eye-slash");
+    } else {
+        passwordField.type = "password";
+        toggleIcon.classList.replace("bi-eye-slash", "bi-eye");
+    }
+}
+</script>
+
 <style>
-    /* Estilizamos los campos que vienen de Django para que se vean como Bootstrap */
-    input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 8px; margin-top: 5px; }
+    input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; padding-right: 40px !important; }
 </style>
 {% endblock %}

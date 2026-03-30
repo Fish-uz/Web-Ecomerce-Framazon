@@ -1,27 +1,69 @@
 {% extends "shop/layout/base.html" %}
 
-{% block title %}Crear cuenta - Framazon{% endblock %}
+{% block title %}Crear Cuenta - Framazon{% endblock %}
 
 {% block content %}
+<script>
+    // Bloqueo de retroceso para usuarios logueados
+    if (window.performance && window.performance.navigation.type === 2) {
+        location.reload();
+    }
+</script>
+
 <div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card shadow border-0 rounded-4">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-4">
                 <div class="card-body p-5">
-                    <h2 class="text-center fw-bold mb-4">Crea tu cuenta</h2>
+                    <h2 class="fw-bold mb-4 text-center">Registro de Usuario</h2>
                     <form method="post">
                         {% csrf_token %}
-                        {{ form.as_p }}
-                        <button type="submit" class="btn btn-warning w-100 fw-bold rounded-pill mt-3">
-                            Registrarse
+                        {% for field in form %}
+                            <div class="mb-3 position-relative">
+                                <label class="form-label fw-bold">{{ field.label }}</label>
+                                {{ field }}
+                                
+                                {# Añadimos el ojito si el campo es de tipo password #}
+                                {% if "password" in field.name %}
+                                    <span class="position-absolute end-0 top-50 translate-middle-y me-3 mt-2" style="cursor: pointer;" onclick="toggleRegPassword('{{ field.id_for_label }}', this)">
+                                        <i class="bi bi-eye toggle-icon"></i>
+                                    </span>
+                                {% endif %}
+
+                                {% if field.help_text %}
+                                    <div class="form-text text-muted small">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-warning w-100 fw-bold rounded-pill py-2">
+                            Registrarme
                         </button>
                     </form>
-                    <div class="text-center mt-3">
-                        <small>¿Ya tienes cuenta? <a href="{% url 'login' %}" class="text-decoration-none">Inicia sesión</a></small>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function toggleRegPassword(fieldId, el) {
+    const passwordField = document.getElementById(fieldId);
+    const icon = el.querySelector('i');
+    if (passwordField.type === "password") {
+        passwordField.type = "text";
+        icon.classList.replace("bi-eye", "bi-eye-slash");
+    } else {
+        passwordField.type = "password";
+        icon.classList.replace("bi-eye-slash", "bi-eye");
+    }
+}
+</script>
+
+<style>
+    input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; padding-right: 40px !important; }
+    .position-relative span { z-index: 10; }
+</style>
 {% endblock %}

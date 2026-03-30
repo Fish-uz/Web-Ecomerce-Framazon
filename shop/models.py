@@ -22,6 +22,9 @@ class Product(models.Model):
     available = models.BooleanField(default=True)
     vendedor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='productos_venta')
     created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created'] # Esto hará que el Mouse Gaming aparezca de primero
 
     def __str__(self):
         return self.name

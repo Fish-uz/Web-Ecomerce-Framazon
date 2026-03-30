@@ -17,6 +17,7 @@ urlpatterns = [
     path('product/create/', views.product_create, name='product_create'),
     path('my-orders/', views.my_orders, name='my_orders'),
     path('profile/', views.user_profile, name='user_profile'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('vender/', views.product_create, name='product_create'),
 
     # DINÁMICAS

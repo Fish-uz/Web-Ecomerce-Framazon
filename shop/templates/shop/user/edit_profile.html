@@ -1,0 +1,59 @@
+{% extends "shop/layout/base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-gear-wide-connected text-warning display-4"></i>
+                        <h3 class="fw-bold mt-2">Ajustes de Cuenta</h3>
+                        <p class="text-muted">Actualiza tu información personal</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre de usuario</label>
+                            <input type="text" class="form-control bg-light" value="{{ user.username }}" disabled>
+                            <small class="text-muted">El nombre de usuario no se puede cambiar.</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Nombre</label>
+                                <input type="text" name="first_name" class="form-control rounded-pill" value="{{ user.first_name }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Apellido</label>
+                                <input type="text" name="last_name" class="form-control rounded-pill" value="{{ user.last_name }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Correo electrónico</label>
+                            <input type="email" name="email" class="form-control rounded-pill" value="{{ user.email }}">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning fw-bold rounded-pill">Guardar cambios</button>
+                            <a href="{% url 'shop:user_profile' %}" class="btn btn-link text-muted text-decoration-none">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card border-danger mt-4 rounded-4 opacity-75">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-danger">Seguridad</h6>
+                        <small class="text-muted">¿Quieres cambiar tu contraseña?</small>
+                    </div>
+                    <a href="#" class="btn btn-outline-danger btn-sm rounded-pill px-3">Actualizar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
