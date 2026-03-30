@@ -7,16 +7,19 @@ urlpatterns = [
     path('', views.product_list, name='product_list'),
     path('register/', views.register, name='register'),
     
-    # 1. RUTAS DEL CARRITO (Van primero porque son fijas)
+    # RUTAS DEL CARRITO
     path('cart/', views.cart_detail, name='cart_detail'),
     path('cart/add/<int:product_id>/', views.cart_add, name='cart_add'),
     path('cart/remove/<int:product_id>/', views.cart_remove, name='cart_remove'),
+    
+    # OTRAS RUTAS
     path('order/create/', views.order_create, name='order_create'),
     path('product/create/', views.product_create, name='product_create'),
     path('my-orders/', views.my_orders, name='my_orders'),
     path('profile/', views.user_profile, name='user_profile'),
+    path('vender/', views.product_create, name='product_create'),
 
-    # 2. RUTAS DINÁMICAS (Van al final)
-    path('<slug:category_slug>/', views.product_list, name='product_list_by_category'),
-    path('<int:id>/<slug:slug>/', views.product_detail, name='product_detail'),
+    # DINÁMICAS
+    path('category/<slug:category_slug>/', views.product_list, name='product_list_by_category'),
+    path('product/<int:id>/<slug:slug>/', views.product_detail, name='product_detail'),
 ]

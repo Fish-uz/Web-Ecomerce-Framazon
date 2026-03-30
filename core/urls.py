@@ -7,7 +7,7 @@ urlpatterns = [
     path('admin/', admin.site.urls), # <-- Asegúrate que diga admin.site.urls
     path('accounts/', include('django.contrib.auth.urls')), 
     path('', include('shop.urls', namespace='shop')),
-    path('cart/', include('cart.urls', namespace='cart')),
+    #path('cart/', include('shop.cart.urls', namespace='cart')),
 ]
 
 if settings.DEBUG:

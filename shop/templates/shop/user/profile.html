@@ -1,6 +1,4 @@
-{% extends "layout/base.html" %}
-
-{% block content %}
+{% extends "shop/layout/base.html" %} {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-4">
@@ -13,7 +11,6 @@
                     <p class="text-muted">{{ request.user.email }}</p>
                     <hr>
                     <div class="text-start">
-                        <h6><i class="bi bi-cart-check me-2"></i>Items en carrito: <strong>{{ cart_total_count }}</strong></h6>
                         <h6><i class="bi bi-box-seam me-2"></i>Total pedidos: <strong>{{ order_history.count }}</strong></h6>
                     </div>
                 </div>
@@ -22,18 +19,18 @@
 
         <div class="col-md-8">
             <h3 class="fw-bold mb-4">Panel de Control</h3>
-            
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white border-bottom">
-                    <ul class="nav nav-pills card-header-pills" id="pills-tab" role="tablist">
-                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#pedidos">Pedidos Activos</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#historial">Historial Completo</a></li>
+                    <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="pedidos-tab" data-bs-toggle="tab" data-bs-target="#pedidos" type="button">Pedidos</button>
+                        </li>
                     </ul>
                 </div>
                 <div class="card-body">
-                    <div class="tab-content">
+                    <div class="tab-content" id="myTabContent">
                         <div class="tab-pane fade show active" id="pedidos">
-                            {% for order in active_orders %}
+                            {% for order in order_history %}
                                 <div class="d-flex justify-content-between align-items-center border-bottom py-3">
                                     <div>
                                         <span class="badge bg-info text-dark">#{{ order.id }}</span>
@@ -43,16 +40,7 @@
                                     <span class="badge rounded-pill bg-warning text-dark">{{ order.get_status_display }}</span>
                                 </div>
                             {% empty %}
-                                <p class="text-center py-4">No tienes pedidos en curso.</p>
-                            {% endfor %}
-                        </div>
-                        <div class="tab-pane fade" id="historial">
-                            {% for order in order_history %}
-                                <div class="border-bottom py-2">
-                                    Pedido #{{ order.id }} - {{ order.created|date:"d/m/Y" }} - <strong>${{ order.get_total_cost }}</strong>
-                                </div>
-                            {% empty %}
-                                <p>No hay historial de compras.</p>
+                                <p class="text-center py-4">No tienes pedidos aún.</p>
                             {% endfor %}
                         </div>
                     </div>

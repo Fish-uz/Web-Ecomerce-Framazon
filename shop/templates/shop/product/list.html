@@ -13,12 +13,12 @@
                     <div class="list-group list-group-flush">
                         <a href="{% url 'shop:product_list' %}" 
                            class="list-group-item list-group-item-action {% if not category %}active{% endif %}">
-                           Todas
+                            Todas
                         </a>
                         {% for c in categories %}
                         <a href="{% url 'shop:product_list_by_category' c.slug %}" 
                            class="list-group-item list-group-item-action {% if category.slug == c.slug %}active{% endif %}">
-                            {{ c.name }}
+                             {{ c.name }}
                         </a>
                         {% endfor %}
                     </div>
@@ -37,7 +37,7 @@
                             {% if product.image %}
                                 <img src="{{ product.image.url }}" class="card-img-top img-fluid" alt="{{ product.name }}" style="max-height: 100%; width: auto;">
                             {% else %}
-                                <img src="{% static 'shop/img/no-image.png' %}" class="card-img-top img-fluid" alt="No Image">
+                                <img src="https://via.placeholder.com/150" class="card-img-top img-fluid" alt="No Image">
                             {% endif %}
                         </a>
                     </div>
@@ -46,14 +46,12 @@
                             <a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name }}</a>
                         </h6>
                         <p class="card-text fs-5 text-danger fw-bold mb-2">
-                            {% if product.price %}
-                                ${{ product.price }}
-                            {% else %}
-                                $0.00
-                            {% endif %}
+                            ${{ product.price }}
                         </p>
-                        <form action="{% url 'cart:cart_add' product.id %}" method="post" class="mt-auto">
+                        <form action="{% url 'shop:cart_add' product.id %}" method="post" class="mt-auto">
                             {% csrf_token %}
+                            <input type="hidden" name="quantity" value="1">
+                            <input type="hidden" name="override" value="False">
                             <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold rounded-pill p-1">
                                 Agregar al carrito
                             </button>
@@ -63,7 +61,7 @@
             </div>
                 {% empty %}
                 <div class="col-12 text-center">
-                    <p class="text-muted">No hay productos disponibles en esta categoría.</p>
+                    <p class="text-muted">No hay productos disponibles.</p>
                 </div>
                 {% endfor %}
             </div>

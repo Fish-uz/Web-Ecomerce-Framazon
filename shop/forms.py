@@ -24,11 +24,5 @@ class ProductForm(forms.ModelForm):
 PRODUCT_QUANTITY_CHOICES = [(i, str(i)) for i in range(1, 21)]
 
 class CartAddProductForm(forms.Form):
-    # Usamos un TypedChoiceField para que el usuario elija cantidad (del 1 al 20)
-    quantity = forms.TypedChoiceField(
-        choices=PRODUCT_QUANTITY_CHOICES,
-        coerce=int,
-        label='Cantidad'
-    )
-    # Este campo indica si queremos sobrescribir la cantidad o sumarla
-    override = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput)
+   quantity = forms.IntegerField(min_value=1, label='Cantidad')
+   override = forms.BooleanField(required=False, initial=False, widget=forms.HiddenInput)

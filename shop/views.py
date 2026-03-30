@@ -9,37 +9,30 @@ from django.utils.text import slugify
 
 from .models import Category, Product, Order, OrderItem
 from .forms import OrderCreateForm, ProductForm, CartAddProductForm
-from .cart import Cart
+from .cart import Cart  # Línea 14: Importación local correcta
 
 def product_list(request, category_slug=None):
     category = None
     categories = Category.objects.all()
     products = Product.objects.filter(available=True)
-    
     search_query = request.GET.get('search')
     if search_query:
-        products = products.filter(
-            Q(name__icontains=search_query) | 
-            Q(description__icontains=search_query)
-        )
-
+        products = products.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
     if category_slug:
         category = get_object_or_404(Category, slug=category_slug)
         products = products.filter(category=category)
-    
-    context = {
-        'category': category,
-        'categories': categories,
-        'products': products,
-        'search_query': search_query,
-    }
-    return render(request, 'shop/product/list.html', context)
+    return render(request, 'shop/product/list.html', {
+        'category': category, 
+        'categories': categories, 
+        'products': products, 
+        'search_query': search_query
+    })
 
 def product_detail(request, id, slug):
     product = get_object_or_404(Product, id=id, slug=slug, available=True)
     cart_product_form = CartAddProductForm()
     return render(request, 'shop/product/detail.html', {
-        'product': product,
+        'product': product, 
         'cart_product_form': cart_product_form
     })
 
@@ -48,23 +41,16 @@ def cart_add(request, product_id):
     cart = Cart(request)
     product = get_object_or_404(Product, id=product_id)
     form = CartAddProductForm(request.POST)
-    
     if form.is_valid():
         cd = form.cleaned_data
-        cart.add(product=product, 
-                 quantity=cd['quantity'], 
-                 override_quantity=cd['override'])
-        
-        # Si es AJAX, devolvemos el nuevo total para el badge
+        cart.add(product=product, quantity=cd['quantity'], override_quantity=cd['override'])
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            total_items = sum(item['quantity'] for item in cart)
-            return JsonResponse({'cart_count': total_items})
-    
-    # Si no es AJAX (respaldo), redirige al detalle del carrito
+            return JsonResponse({'cart_count': len(cart)})
     return redirect('shop:cart_detail')
 
 def cart_detail(request):
     cart = Cart(request)
+    # CORRECCIÓN: Ruta con prefijo shop/
     return render(request, 'shop/cart/detail.html', {'cart': cart})
 
 def cart_remove(request, product_id):
@@ -83,17 +69,27 @@ def order_create(request):
             order.user = request.user
             order.save()
             for item in cart:
-                OrderItem.objects.create(
-                    order=order,
-                    product=item['product'],
-                    price=item['price'],
-                    quantity=item['quantity']
-                )
+                OrderItem.objects.create(order=order, product=item['product'], price=item['price'], quantity=item['quantity'])
             cart.clear()
+            # CORRECCIÓN: Ruta con prefijo shop/
             return render(request, 'shop/order/created.html', {'order': order})
     else:
         form = OrderCreateForm()
+    # CORRECCIÓN: Ruta con prefijo shop/
     return render(request, 'shop/order/create.html', {'cart': cart, 'form': form})
+
+@login_required
+def my_orders(request):
+    orders = Order.objects.filter(user=request.user)
+    # CORRECCIÓN: Ruta con prefijo shop/
+    return render(request, 'shop/order/my_orders.html', {'orders': orders})
+
+@login_required
+def user_profile(request):
+    active_orders = Order.objects.filter(user=request.user).exclude(status='delivered')
+    order_history = Order.objects.filter(user=request.user)
+    # CORRECCIÓN: Ruta con prefijo shop/
+    return render(request, 'shop/user/profile.html', {'active_orders': active_orders, 'order_history': order_history})
 
 @login_required
 def product_create(request):
@@ -107,6 +103,7 @@ def product_create(request):
             return redirect('shop:product_list')
     else:
         form = ProductForm()
+    # CORRECCIÓN: Ruta con prefijo shop/
     return render(request, 'shop/product/create.html', {'form': form})
 
 def register(request):
@@ -119,17 +116,3 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
-
-@login_required
-def my_orders(request):
-    orders = Order.objects.filter(user=request.user)
-    return render(request, 'shop/order/my_orders.html', {'orders': orders})
-
-@login_required
-def user_profile(request):
-    active_orders = Order.objects.filter(user=request.user).exclude(status='delivered')
-    order_history = Order.objects.filter(user=request.user)
-    return render(request, 'shop/user/profile.html', {
-        'active_orders': active_orders,
-        'order_history': order_history,
-    })

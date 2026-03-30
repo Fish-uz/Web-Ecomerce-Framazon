@@ -2,7 +2,7 @@ from .cart import Cart
 
 def cart(request):
     cart_obj = Cart(request)
-    # Sumamos las cantidades de cada item en el carrito
+    # Calculamos el total de items para el badge del navbar
     total_qty = sum(item['quantity'] for item in cart_obj)
     return {
         'cart': cart_obj,
