@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -77,6 +78,29 @@ class Order(models.Model):
 
     def get_total_cost(self):
         return sum(item.get_cost() for item in self.items.all())
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            # Obtenemos el objeto actual de la base de datos para comparar
+            original = Order.objects.get(pk=self.pk)
+            
+            # 1. Impedir retroceso de estatus
+            status_order = ['pending', 'paid', 'shipped', 'info_rejected', 'delivered']
+            if status_order.index(self.status) < status_order.index(original.status):
+                # Excepción: permitir pasar de 'shipped' a 'info_rejected'
+                if not (original.status == 'shipped' and self.status == 'info_rejected'):
+                    raise ValidationError("No se puede retroceder el estado del pedido.")
+
+            # 2. Si el estatus es Shipped, validar que existan datos de envío
+            if self.status == 'shipped':
+                if not self.courier_name or not self.tracking_number:
+                    raise ValidationError("Debe ingresar Empresa y Nro. Guía para marcar como enviado.")
+
+            # 3. Bloquear edición si ya fue aceptado
+            if original.status == 'shipped' and self.status == 'shipped' and original.buyer_confirmed_info:
+                raise ValidationError("La información de envío ya fue aceptada y no puede modificarse.")
+
+        super().save(*args, **kwargs)
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)

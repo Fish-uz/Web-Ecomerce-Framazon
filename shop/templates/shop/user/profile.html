@@ -84,10 +84,9 @@
                                                 {% endif %}
                                             </td>
                                             <td>
-                                                {% if order.status == 'shipped' or order.status == 'info_rejected' %}
+                                                {% if order.status == 'shipped' or order.status == 'info_rejected' or order.status == 'delivered' %}
                                                     <div class="small">
                                                         <strong class="text-dark">{{ order.courier_name }}</strong><br>
-                                                        <span class="text-muted">Tlf: {{ order.courier_phone }}</span><br>
                                                         <span class="text-muted">Guía: {{ order.tracking_number }}</span><br>
                                                         {% if order.shipping_proof %}
                                                             <a href="{{ order.shipping_proof.url }}" target="_blank" class="text-warning fw-bold text-decoration-none small">
@@ -200,72 +199,101 @@
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <h5 class="fw-bold mb-0">Pedidos recibidos</h5>
                                 <div class="btn-group">
-                                    <a href="?status=#gestionar-ventas" class="btn btn-outline-dark btn-sm rounded-start-pill">Todos</a>
+                                    <a href="?status=#gestionar-ventas" class="btn btn-outline-dark btn-sm rounded-start-pill text-xs">Todos</a>
                                     {% for code, name in status_choices %}
-                                        <a href="?status={{ code }}#gestionar-ventas" class="btn btn-outline-dark btn-sm {% if forloop.last %}rounded-end-pill{% endif %}">{{ name }}</a>
+                                        <a href="?status={{ code }}#gestionar-ventas" class="btn btn-outline-dark btn-sm {% if forloop.last %}rounded-end-pill{% endif %} text-xs">{{ name }}</a>
                                     {% endfor %}
                                 </div>
                             </div>
+                            
                             <div class="table-responsive">
                                 <table class="table align-middle">
-                                    <thead class="table-light">
+                                    <thead class="table-light small">
                                         <tr>
                                             <th>Producto / Cliente</th>
-                                            <th>Gestión de Estado y Envío</th>
+                                            <th>Estado y Gestión</th>
+                                            <th class="text-end">Detalles</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for order_obj in orders %}
-                                        <tr>
+                                        <tr class="border-bottom">
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="ms-1 flex-grow-1">
-                                                        <span class="small fw-bold d-block">Pedido #{{ order_obj.id }}</span>
-                                                        <span class="text-muted small">Cliente: {{ order_obj.first_name }} {{ order_obj.last_name }}</span><br>
-                                                        <a href="mailto:{{ order_obj.email }}" class="text-primary small"><i class="bi bi-envelope"></i> Contactar</a>
+                                                    {% with first_item=order_obj.items.first %}
+                                                    <img src="{{ first_item.product.image.url }}" class="rounded-3 me-2 border" style="width: 45px; height: 45px; object-fit: cover;">
+                                                    <div class="flex-grow-1">
+                                                        <span class="small fw-bold d-block text-truncate" style="max-width: 150px;">{{ first_item.product.name }}</span>
+                                                        <span class="text-muted" style="font-size: 0.75rem;">Cliente: {{ order_obj.first_name }}</span>
                                                     </div>
+                                                    {% endwith %}
                                                 </div>
                                             </td>
                                             <td>
-                                                <form action="{% url 'shop:update_order_status' order_obj.id %}" method="post" enctype="multipart/form-data">
+                                                <form action="{% url 'shop:update_order_status' order_obj.id %}" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
                                                     {% csrf_token %}
-                                                    <div class="row g-2 align-items-center">
-                                                        <div class="col-auto">
-                                                            <select name="status" class="form-select form-select-sm status-select" data-order-id="{{ order_obj.id }}">
-                                                                {% for code, name in status_choices %}
-                                                                    <option value="{{ code }}" {% if order_obj.status == code %}selected{% endif %}>{{ name }}</option>
-                                                                {% endfor %}
-                                                            </select>
-                                                        </div>
-                                                        
-                                                        <div id="shipping-fields-{{ order_obj.id }}" class="col-12 {% if order_obj.status != 'shipped' and order_obj.status != 'info_rejected' %}d-none{% endif %} mt-2">
-                                                            <div class="p-3 bg-light border rounded-3 small">
-                                                                <div class="row g-2">
-                                                                    <div class="col-md-6">
-                                                                        <label class="form-label mb-1 fw-bold">Empresa de Envío *</label>
-                                                                        <input type="text" name="courier_name" class="form-control form-control-sm" placeholder="Zoom, Tealca..." value="{{ order_obj.courier_name|default:'' }}">
-                                                                    </div>
-                                                                    <div class="col-md-6">
-                                                                        <label class="form-label mb-1 fw-bold">Nro. Guía *</label>
-                                                                        <input type="text" name="tracking_number" class="form-control form-control-sm" value="{{ order_obj.tracking_number|default:'' }}">
-                                                                    </div>
-                                                                    <div class="col-12">
-                                                                        <label class="form-label mb-1 fw-bold">Comprobante de Envío</label>
-                                                                        <input type="file" name="shipping_proof" class="form-control form-control-sm">
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="col-auto">
-                                                            <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3">Actualizar</button>
-                                                        </div>
-                                                    </div>
+                                                    <select name="status" class="form-select form-select-sm status-select" data-order-id="{{ order_obj.id }}" style="width: 130px; font-size: 0.8rem;"
+                                                    {% if order_obj.buyer_confirmed_info %}disabled{% endif %}>
+                                                        {% for code, name in status_choices %}
+                                                            <option value="{{ code }}" {% if order_obj.status == code %}selected{% endif %}>{{ name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    {% if not order_obj.buyer_confirmed_info %}
+                                                    <button type="submit" class="btn btn-sm btn-dark rounded-pill px-2" style="font-size: 0.75rem;">Actualizar</button>
+                                                    {% endif %}
                                                 </form>
+                                            </td>
+                                            <td class="text-end">
+                                                <button id="arrow-{{ order_obj.id }}" class="btn btn-light btn-sm border rounded-circle shadow-sm arrow-toggle" 
+                                                        type="button" data-bs-toggle="collapse" 
+                                                        data-bs-target="#shipping-fields-{{ order_obj.id }}"
+                                                        style="{% if order_obj.status != 'shipped' and order_obj.status != 'info_rejected' %}display: none;{% endif %}">
+                                                    <i class="bi bi-chevron-down"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3" class="p-0 border-0">
+                                                <div id="shipping-fields-{{ order_obj.id }}" class="collapse {% if order_obj.status == 'shipped' or order_obj.status == 'info_rejected' %}show{% endif %}">
+                                                    <div class="p-3 bg-light border-start border-end border-bottom rounded-bottom-4 mx-2 mb-3 shipping-container" id="container-{{ order_obj.id }}">
+                                                        <form action="{% url 'shop:update_order_status' order_obj.id %}" method="post" enctype="multipart/form-data">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="status" value="{{ order_obj.status }}">
+                                                            <div class="row g-2">
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label mb-1 fw-bold small">Empresa *</label>
+                                                                    <input type="text" name="courier_name" class="form-control form-control-sm" placeholder="Ej: Zoom" value="{{ order_obj.courier_name|default:'' }}"
+                                                                    {% if order_obj.buyer_confirmed_info %}readonly{% endif %}>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label mb-1 fw-bold small">Nro. Guía *</label>
+                                                                    <input type="text" name="tracking_number" class="form-control form-control-sm" value="{{ order_obj.tracking_number|default:'' }}"
+                                                                    {% if order_obj.buyer_confirmed_info %}readonly{% endif %}>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label mb-1 fw-bold small">Foto Comprobante</label>
+                                                                    {% if order_obj.buyer_confirmed_info %}
+                                                                        <div class="text-success small"><i class="bi bi-check-circle-fill"></i> Comprobante guardado</div>
+                                                                    {% else %}
+                                                                        <input type="file" name="shipping_proof" class="form-control form-control-sm">
+                                                                        {% if order_obj.shipping_proof %}
+                                                                        <div class="text-muted" style="font-size: 0.7rem;">Ya existe: {{ order_obj.shipping_proof.name|truncatechars:15 }}</div>
+                                                                        {% endif %}
+                                                                    {% endif %}
+                                                                </div>
+                                                                {% if not order_obj.buyer_confirmed_info %}
+                                                                <div class="col-12 text-end mt-2">
+                                                                    <button type="submit" class="btn btn-warning btn-sm fw-bold rounded-pill px-3">Guardar Detalles de Envío</button>
+                                                                </div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% empty %}
-                                        <tr><td colspan="2" class="text-center py-5 text-muted">No hay ventas con este estatus.</td></tr>
+                                        <tr><td colspan="3" class="text-center py-5 text-muted">No hay ventas registradas.</td></tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -281,29 +309,44 @@
 
 <style>
     .nav-tabs .nav-link { color: #6c757d; border-bottom: 3px solid transparent !important; transition: 0.3s; }
-    .nav-tabs .nav-link.active { color: #212529 !important; border-bottom: 3px solid #0d6efd !important; background: none; }
-    .nav-tabs .nav-link:hover { color: #0d6efd; }
+    .nav-tabs .nav-link.active { color: #212529 !important; border-bottom: 3px solid #ffc107 !important; background: none; }
+    .nav-tabs .nav-link:hover { color: #ffc107; }
     .min-vh-50 { min-height: 50vh; }
     .btn-xs { padding: 2px 8px; font-size: 0.75rem; }
+    .text-xs { font-size: 0.7rem; }
 </style>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Lógica de pestañas para que se mantengan al recargar
+        // Lógica de Tabs persistentes
         let hash = window.location.hash;
         if (hash) {
             let tab = document.querySelector(`button[data-bs-target="${hash}"]`);
             if (tab) tab.click();
         }
 
+        // Lógica para mostrar/ocultar flecha y contenedor según estatus
         document.querySelectorAll('.status-select').forEach(select => {
             select.addEventListener('change', function() {
-                const orderId = this.getAttribute('data-order-id');
-                const fields = document.getElementById(`shipping-fields-${orderId}`);
+                const orderId = this.dataset.orderId;
+                const container = document.getElementById(`container-${orderId}`);
+                const arrow = document.getElementById(`arrow-${orderId}`);
+                const collapseEl = document.getElementById(`shipping-fields-${orderId}`);
+
                 if (this.value === 'shipped' || this.value === 'info_rejected') {
-                    fields.classList.remove('d-none');
+                    // Mostrar flecha y abrir contenedor
+                    arrow.style.display = 'inline-block';
+                    if (container) container.style.display = 'block';
+                    
+                    if (!collapseEl.classList.contains('show')) {
+                        new bootstrap.Collapse(collapseEl).show();
+                    }
                 } else {
-                    fields.classList.add('d-none');
+                    // Ocultar flecha y cerrar contenedor
+                    arrow.style.display = 'none';
+                    if (collapseEl.classList.contains('show')) {
+                        new bootstrap.Collapse(collapseEl).hide();
+                    }
                 }
             });
         });

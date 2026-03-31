@@ -93,11 +93,21 @@ def order_create(request):
     if request.method == 'POST':
         form = OrderCreateForm(request.POST)
         if form.is_valid():
+            # Validación extra de stock al momento de crear la orden
+            for item in cart:
+                if item['quantity'] > item['product'].stock:
+                    messages.error(request, f"El producto {item['product'].name} ya no tiene stock suficiente.")
+                    return redirect('shop:cart_detail')
+
             order = form.save(commit=False)
             order.user = request.user
             order.save()
             for item in cart:
                 OrderItem.objects.create(order=order, product=item['product'], price=item['price'], quantity=item['quantity'])
+                # Descontar stock
+                item['product'].stock -= item['quantity']
+                item['product'].save()
+                
             cart.clear()
             return render(request, 'shop/order/created.html', {'order': order})
     else:
@@ -111,26 +121,23 @@ def my_orders(request):
 
 @login_required
 def user_profile(request):
-    # Variables originales para tus pestañas
     active_orders = Order.objects.filter(user=request.user).exclude(status__in=['delivered', 'canceled', 'completed'])
     order_history = Order.objects.filter(user=request.user)
     my_products = Product.objects.filter(vendedor=request.user) 
     mis_ventas = OrderItem.objects.filter(product__vendedor=request.user).order_by('-id')
     
-    # Lógica de filtrado para la pestaña "Gestionar Ventas"
     status_filter = request.GET.get('status')
     orders_filtered = Order.objects.filter(items__product__vendedor=request.user).distinct()
     
     if status_filter:
         orders_filtered = orders_filtered.filter(status=status_filter)
     
-    # Un solo contexto con TODO para que no se pierda nada en el HTML
     context = {
         'active_orders': active_orders,
         'order_history': order_history,
         'my_products': my_products,
         'mis_ventas': mis_ventas,
-        'orders': orders_filtered, # Usamos esta para la tabla con filtros
+        'orders': orders_filtered,
         'status_choices': Order.STATUS_CHOICES
     }
     return render(request, 'shop/user/profile.html', context)
@@ -206,8 +213,11 @@ def product_edit(request, id):
         if form.is_valid() and formset.is_valid():
             product = form.save()
             formset.save()
-            if product.images.exists():
-                product.image = product.images.first().image
+            
+            # Actualizar imagen principal si existe al menos una
+            first_img = product.images.first()
+            if first_img:
+                product.image = first_img.image
                 product.save()
 
             messages.success(request, 'Producto actualizado correctamente.')
@@ -231,6 +241,11 @@ def update_order_status(request, order_id):
     if not is_vendedor:
         messages.error(request, "No tienes permiso para gestionar este pedido.")
         return redirect('shop:user_profile')
+
+    # BLOQUEO: Solo permitir edición si NO está enviado O si fue rechazado
+    if order.status == 'shipped':
+        messages.warning(request, "Los detalles ya han sido enviados. Solo podrá editar si el cliente declina la información.")
+        return redirect('/profile/#gestionar-ventas')
     
     new_status = request.POST.get('status')
     if new_status == 'shipped':
@@ -238,10 +253,12 @@ def update_order_status(request, order_id):
         order.courier_name = request.POST.get('courier_name')
         order.tracking_number = request.POST.get('tracking_number')
         order.courier_contact = request.POST.get('courier_contact')
+        
         if 'shipping_proof' in request.FILES:
             order.shipping_proof = request.FILES['shipping_proof']
+            
         order.save()
-        messages.success(request, "Información de envío actualizada.")
+        messages.success(request, "Información de envío guardada y bloqueada.")
     else:
         order.status = new_status
         order.save()
@@ -253,6 +270,7 @@ def update_order_status(request, order_id):
 def confirm_info(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     order.buyer_confirmed_info = True
+    # Si el cliente confirma la info, podrías querer pasar el estado a 'delivered' automáticamente o esperar al finalize
     order.save()
     messages.success(request, "Has confirmado que recibiste la información de envío.")
     return redirect('shop:user_profile')
@@ -278,14 +296,13 @@ def finalize_order(request, order_id):
         comment = request.POST.get('comment')
 
         for item in order.items.all():
-            Review.objects.create(
+            Review.objects.get_or_create(
                 product=item.product,
                 user=request.user,
-                rating=rating,
-                comment=comment
+                defaults={'rating': rating, 'comment': comment}
             )
 
-        order.status = 'completed'
+        order.status = 'delivered' # O 'completed' según tus STATUS_CHOICES
         order.save()
         messages.success(request, "¡Pedido finalizado con éxito!")
     return redirect('shop:user_profile')
